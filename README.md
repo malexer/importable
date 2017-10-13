@@ -43,11 +43,16 @@ Assuming that you have local nginx serving `/var/www/html/` on port 80.
 $ mkdir mymodule
 $ echo "my_var = 'I want to import this one!'" > mymodule/__init__.py
 $ zip -r mymodule.zip mymodule
-$ rm ./mymodule
 $ mv mymodule.zip /var/www/html
 ```
+
 Then execute the python code:
+
 ```python
+>>> import mymodule
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+ImportError: No module named 'mymodule'
 >>> from importable import importable
 >>> importable('http://localhost/mymodule.zip')
 >>> import mymodule
