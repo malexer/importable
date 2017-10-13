@@ -66,12 +66,11 @@ class HttpImporter(ImportBase):
     def download(self, remote_location, local_filepath):
         r = requests.get(remote_location, stream=True)
 
-
         if r.status_code != 200:
             r.raise_for_status()
 
         with open(local_filepath, 'wb') as f:
-            for chunk in r.iter_content(1024*10):
+            for chunk in r.iter_content(1024 * 10):
                 f.write(chunk)
 
 
@@ -79,7 +78,8 @@ class ZipImporter(ImportBase):
 
     def unpack(self, source_file, destination_dir):
         if not zipfile.is_zipfile(source_file):
-            raise ValueError('Provided file is not a ZIP archive: %s' % source_file)
+            raise ValueError(
+                'Provided file is not a ZIP archive: %s' % source_file)
 
         with zipfile.ZipFile(source_file) as zf:
             zf.extractall(path=destination_dir)
