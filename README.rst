@@ -24,7 +24,9 @@ Using pip::
 Usage
 -----
 
-Make remote package importable, then import it and use::
+Make remote package importable, then import it and use:
+
+.. code-block:: python
 
     from importable import importable
 
@@ -48,7 +50,9 @@ Assuming that you have local nginx serving ``/var/www/html/`` on port 80.
     $ zip -r mymodule.zip mymodule
     $ mv mymodule.zip /var/www/html
 
-Then execute the python code::
+Then execute the python code:
+
+.. code-block:: python
 
     >>> import mymodule
     Traceback (most recent call last):
