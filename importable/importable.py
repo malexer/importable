@@ -96,6 +96,17 @@ def get_url_schema(url):
 
 
 def importable(url):
+    """Add to python path zipped module provided by ``url``.
+
+    Remote URL will be downloaded, unzipped and added to python path.
+
+    .. note::
+        Module will be only added to python path. It will be possible
+        to import it afterwards.
+
+    :type url: str
+    :param url: HTTP url of zipped python package
+    """
     scheme = get_url_schema(url)
     if scheme:
         if scheme.startswith('http'):
