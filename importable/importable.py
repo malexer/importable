@@ -8,15 +8,26 @@ import tempfile
 from urllib.parse import urlparse
 import zipfile
 
+from hdfs import InsecureClient
 import requests
+
+
+def get_url_schema(url):
+    p = urlparse(url)
+    if all([p.scheme, p.path]):
+        return p.scheme
+    else:
+        return ''
 
 
 class ImportBase(metaclass=ABCMeta):
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         self._tmp_dir = None
         self._python_path = None
         self._local_package_file = None
+
+        self._config = kwargs
 
     def _get_temp_filename(self):
         f = tempfile.NamedTemporaryFile(dir=self._tmp_dir, delete=False)
@@ -39,6 +50,9 @@ class ImportBase(metaclass=ABCMeta):
         if directory is not None and os.path.exists(directory):
             sys.path.insert(0, directory)
 
+    def _validate_config(self):
+        pass
+
     @abstractmethod
     def is_mine(self, url):
         """Check if specified url should be processed by this Importer."""
@@ -53,6 +67,7 @@ class ImportBase(metaclass=ABCMeta):
         pass
 
     def add_pkg_to_python_path(self, location):
+        self._validate_config()
         self._create_temp_locations()
 
         self.download(
@@ -69,14 +84,8 @@ class ImportBase(metaclass=ABCMeta):
 
 class HttpImporter(ImportBase):
 
-    @staticmethod
-    def _get_url_schema(url):
-        p = urlparse(url)
-        if all([p.scheme, p.netloc, p.path]):
-            return p.scheme
-
     def is_mine(self, url):
-        scheme = self._get_url_schema(url)
+        scheme = get_url_schema(url)
         return super().is_mine(url) and scheme.startswith('http')
 
     def download(self, remote_location, local_filepath):
@@ -88,6 +97,39 @@ class HttpImporter(ImportBase):
         with open(local_filepath, 'wb') as f:
             for chunk in r.iter_content(1024 * 10):
                 f.write(chunk)
+
+
+class HdfsImporter(ImportBase):
+
+    def _validate_config(self):
+        if self._config.get('hdfs_host') and self._config.get('hdfs_port'):
+            pass
+        else:
+            raise ValueError(
+                'Valid values should be provided for arguments: '
+                'hdfs_host, hdfs_port')
+
+    @staticmethod
+    def _build_hdfs_namenode_url(host, port):
+        url = '%s:%s' % (host, port) if port else host
+        if url.startswith('http'):
+            return url
+        else:
+            return 'http://' + url
+
+    def is_mine(self, url):
+        scheme = get_url_schema(url)
+        return super().is_mine(url) and scheme == 'hdfs'
+
+    def download(self, remote_location, local_filepath):
+        connect_url = self._build_hdfs_namenode_url(
+            host=self._config['hdfs_host'],
+            port=self._config['hdfs_port'],
+        )
+
+        hdfs = InsecureClient(connect_url)
+        hdfs_path = urlparse(remote_location).path
+        hdfs.download(hdfs_path, local_filepath)
 
 
 class ZipImporter(ImportBase):
@@ -106,7 +148,7 @@ class ZipImporter(ImportBase):
 
 
 class HttpZipImporter(HttpImporter, ZipImporter):
-    """Regular zip file importer by URL.
+    """Regular zip file importer by arbitrary URL.
 
     Currenly there is a restriction: provided url should have path part
     ending with ".zip"
@@ -149,16 +191,30 @@ class GitHubHttpZipImporter(HttpZipImporter):
         self._python_path = we_need_to_go_deeper(self._python_path)
 
 
+class HdfsZipImporter(HdfsImporter, ZipImporter):
+    """Regular zip file importer by HDFS URL.
+
+    Currenly there is a restriction: provided url should have path part
+    ending with ".zip"
+
+    Importable module should be located in the root of zip file.
+    """
+
+    def is_mine(self, url):
+        return super().is_mine(url)
+
+
 # Note: order matters - check for matching specific importer will be
 # applied in this order
 IMPORTERS = (
     GitHubHttpZipImporter,
     HttpZipImporter,
+    HdfsZipImporter,
 )
 
 
-def importable(url):
-    """Add to python path zipped module provided by ``url``.
+def importable(url, hdfs_host=None, hdfs_port=None):
+    """Add to python path zipped module provided by the ``url``.
 
     Remote URL will be downloaded, unzipped and added to python path.
 
@@ -170,7 +226,7 @@ def importable(url):
     :param url: HTTP url of zipped python package
     """
     for cls in IMPORTERS:
-        importer = cls()
+        importer = cls(hdfs_host=hdfs_host, hdfs_port=hdfs_port)
         if importer.is_mine(url):
             return importer.add_pkg_to_python_path(url)
 
