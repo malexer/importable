@@ -22,12 +22,10 @@ def get_url_schema(url):
 
 class ImportBase(metaclass=ABCMeta):
 
-    def __init__(self, **kwargs):
+    def __init__(self):
         self._tmp_dir = None
         self._python_path = None
         self._local_package_file = None
-
-        self._config = kwargs
 
     def _get_temp_filename(self):
         f = tempfile.NamedTemporaryFile(dir=self._tmp_dir, delete=False)
@@ -50,9 +48,6 @@ class ImportBase(metaclass=ABCMeta):
         if directory is not None and os.path.exists(directory):
             sys.path.insert(0, directory)
 
-    def _validate_config(self):
-        pass
-
     @abstractmethod
     def is_mine(self, url):
         """Check if specified url should be processed by this Importer."""
@@ -67,7 +62,6 @@ class ImportBase(metaclass=ABCMeta):
         pass
 
     def add_pkg_to_python_path(self, location):
-        self._validate_config()
         self._create_temp_locations()
 
         self.download(
@@ -101,34 +95,26 @@ class HttpImporter(ImportBase):
 
 class HdfsImporter(ImportBase):
 
-    def _validate_config(self):
-        if self._config.get('hdfs_host') and self._config.get('hdfs_port'):
-            pass
-        else:
-            raise ValueError(
-                'Valid values should be provided for arguments: '
-                'hdfs_host, hdfs_port')
-
     @staticmethod
-    def _build_hdfs_namenode_url(host, port):
+    def _build_namenode_url(host, port):
         url = '%s:%s' % (host, port) if port else host
-        if url.startswith('http'):
-            return url
-        else:
-            return 'http://' + url
+        return 'http://' + url
 
     def is_mine(self, url):
         scheme = get_url_schema(url)
-        return super().is_mine(url) and scheme == 'hdfs'
+        return super().is_mine(url) and scheme == 'webhdfs'
 
     def download(self, remote_location, local_filepath):
-        connect_url = self._build_hdfs_namenode_url(
-            host=self._config['hdfs_host'],
-            port=self._config['hdfs_port'],
-        )
+        url = urlparse(remote_location)
+
+        if not url.hostname:
+            raise ValueError(
+                'Hostname was not found in provided URL: %s' % remote_location)
+
+        connect_url = self._build_namenode_url(url.hostname, url.port)
+        hdfs_path = url.path
 
         hdfs = InsecureClient(connect_url)
-        hdfs_path = urlparse(remote_location).path
         hdfs.download(hdfs_path, local_filepath)
 
 
@@ -156,6 +142,8 @@ class HttpZipImporter(HttpImporter, ZipImporter):
     Importable module should be located in the root of zip file.
     Use "GitHubHttpZipImporter" for GitHub repo download links because
     they have extra directory inside zip file.
+
+    URL format: http(s)://<url>/<filename>.zip
     """
 
     def is_mine(self, url):
@@ -170,6 +158,8 @@ class GitHubHttpZipImporter(HttpZipImporter):
 
     GitHub zip file has extra directory inside on the first level with
     format: <project name>-<branch or commit>
+
+    URL format: http(s)://github.com/<path>/<filename>.zip
     """
 
     def is_mine(self, url):
@@ -198,6 +188,8 @@ class HdfsZipImporter(HdfsImporter, ZipImporter):
     ending with ".zip"
 
     Importable module should be located in the root of zip file.
+
+    URL format: webhdfs://<host>:<port>/<path>/<filename>.zip
     """
 
     def is_mine(self, url):
@@ -213,7 +205,7 @@ IMPORTERS = (
 )
 
 
-def importable(url, hdfs_host=None, hdfs_port=None):
+def importable(url):
     """Add to python path zipped module provided by the ``url``.
 
     Remote URL will be downloaded, unzipped and added to python path.
@@ -226,7 +218,7 @@ def importable(url, hdfs_host=None, hdfs_port=None):
     :param url: HTTP url of zipped python package
     """
     for cls in IMPORTERS:
-        importer = cls(hdfs_host=hdfs_host, hdfs_port=hdfs_port)
+        importer = cls()
         if importer.is_mine(url):
             return importer.add_pkg_to_python_path(url)
 
