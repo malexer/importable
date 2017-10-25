@@ -76,7 +76,7 @@ class ImportBase(metaclass=ABCMeta):
         self._add_to_python_path(directory=self._python_path)
 
 
-class HttpImporter(ImportBase):
+class HttpMixin(ImportBase):
 
     def is_mine(self, url):
         scheme = get_url_schema(url)
@@ -93,7 +93,7 @@ class HttpImporter(ImportBase):
                 f.write(chunk)
 
 
-class HdfsImporter(ImportBase):
+class HdfsMixin(ImportBase):
 
     @staticmethod
     def _build_namenode_url(host, port):
@@ -118,7 +118,7 @@ class HdfsImporter(ImportBase):
         hdfs.download(hdfs_path, local_filepath)
 
 
-class ZipImporter(ImportBase):
+class ZipMixin(ImportBase):
 
     def is_mine(self, url):
         url_path = urlparse(url).path
@@ -133,7 +133,7 @@ class ZipImporter(ImportBase):
             zf.extractall(path=destination_dir)
 
 
-class HttpZipImporter(HttpImporter, ZipImporter):
+class HttpZipImporter(HttpMixin, ZipMixin):
     """Regular zip file importer by arbitrary URL.
 
     Currenly there is a restriction: provided url should have path part
@@ -181,7 +181,7 @@ class GitHubHttpZipImporter(HttpZipImporter):
         self._python_path = we_need_to_go_deeper(self._python_path)
 
 
-class HdfsZipImporter(HdfsImporter, ZipImporter):
+class HdfsZipImporter(HdfsMixin, ZipMixin):
     """Regular zip file importer by HDFS URL.
 
     Currenly there is a restriction: provided url should have path part
