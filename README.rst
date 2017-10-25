@@ -13,6 +13,32 @@ Note: ``import`` should be called separatelly after calling
 ``importable``. All we do here - just adding package to local python path.
 
 
+Supported URL types
+-------------------
+
+importable supports a limited set of URL types:
+
+1. Http url to zip file: ``http(s)://<url>/<filename>.zip``
+
+   The module, which you are going to import, should be located on the
+   first level of <filename>.zip
+
+   See section Example.
+
+2. Http url to zip file on GitHub:
+   ``http(s)://github.com/<path>/<filename>.zip``
+
+   Similar to the previous type except that module is located inside an
+   additional directory (in <filename>.zip).
+
+3. Hdfs url to zip file: ``webhdfs://<host>:<port>/<path>/<filename>.zip``
+
+   Similar to #1 except that file will be downloaded from HDFS.
+
+   ``<host>`` - hostname or IP address of Hdfs namenode
+   ``<port>`` - WebHdfs port of namenode
+
+
 Install
 -------
 
