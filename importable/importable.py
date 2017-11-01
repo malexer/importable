@@ -13,11 +13,7 @@ import requests
 
 
 def get_url_schema(url):
-    p = urlparse(url)
-    if all([p.scheme, p.path]):
-        return p.scheme
-    else:
-        return ''
+    return urlparse(url).scheme
 
 
 class ImportBase(metaclass=ABCMeta):
@@ -169,7 +165,9 @@ class GitHubHttpZipImporter(HttpZipImporter):
     def unpack(self, source_file, destination_dir):
 
         def we_need_to_go_deeper(dir):
-            """Go +1 dir level, there should be only 1 dir in dir."""
+            """Go +1 dir level, there should be only 1 subdirectory in
+            dir.
+            """
             subdirs = [f for f in Path(dir).iterdir() if f.is_dir()]
             if len(subdirs) != 1:
                 raise ValueError(
@@ -217,6 +215,10 @@ def importable(url):
     :type url: str
     :param url: HTTP url of zipped python package
     """
+    if not isinstance(url, str):
+        msg = "importable() argument must be a string, not '%s'"
+        raise TypeError(msg % type(url).__name__)
+
     for cls in IMPORTERS:
         importer = cls()
         if importer.is_mine(url):
