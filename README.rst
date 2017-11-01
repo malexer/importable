@@ -1,6 +1,10 @@
 importable
 ==========
 
+.. image:: https://travis-ci.org/malexer/importable.svg?branch=master
+   :target: https://travis-ci.org/malexer/importable
+   :alt: Test Status
+
 Allows to import zip-compressed Python package by URL.
 
 Download remote zip-compressed Python package, unzip and add to Python
