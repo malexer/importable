@@ -14,7 +14,7 @@ with open(path.join(cwd, 'requirements.txt'), encoding='utf-8') as f:
 
 setup(
     name='importable',
-    version='0.2.0',
+    version='0.2.1',
 
     description=(
         'Allows to import zip-compressed Python package by URL (http, hdfs).'),
