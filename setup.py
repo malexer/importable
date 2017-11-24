@@ -14,7 +14,7 @@ with open(path.join(cwd, 'requirements.txt'), encoding='utf-8') as f:
 
 setup(
     name='importable',
-    version='0.2.1',
+    version='0.2.2',
 
     description=(
         'Allows to import zip-compressed Python package by URL (http, hdfs).'),
@@ -27,7 +27,7 @@ setup(
     license='MIT',
 
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'Topic :: Software Development :: Libraries :: Python Modules',
         'License :: OSI Approved :: MIT License',
@@ -37,6 +37,6 @@ setup(
 
     keywords=('import url http hdfs zip importable python_path'),
 
-    py_modules=['importable'],
+    packages=['importable'],
     install_requires=requirements,
 )
